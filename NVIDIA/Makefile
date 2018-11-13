@@ -116,7 +116,7 @@ NVCC          := $(CUDA_PATH)/bin/nvcc -ccbin $(HOST_COMPILER)
 
 # internal flags
 NVCCFLAGS   := -m${TARGET_SIZE}
-CCFLAGS     :=
+CCFLAGS     := 
 LDFLAGS     :=
 
 # build flags
@@ -235,15 +235,15 @@ LIBRARIES += -lcublas
 # Target rules
 all: build
 
-build: simpleCUBLAS
+build: dgemmTest
 
-simpleCUBLAS.o:simpleCUBLAS.cpp
+dgemmTest.o: dgemmTest.cpp
 	$(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
-simpleCUBLAS: simpleCUBLAS.o
+dgemmTest: dgemmTest.o
 	$(NVCC) $(ALL_LDFLAGS) $(GENCODE_FLAGS) -o $@ $+ $(LIBRARIES)
 
 clean:
-	rm -f simpleCUBLAS simpleCUBLAS.o
+	rm -f dgemmTest.o dgemmTest
 
 clobber: clean
