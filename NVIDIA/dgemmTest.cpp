@@ -4,12 +4,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <cassert>
-#include <fstream>
 
 
 /* Includes, cuda */
+#include <cuda.h>
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
+#include "help.h"
 
 
 /* Main */
@@ -126,12 +127,14 @@ int main(int argc, char **argv) {
     fprintf(stderr, "!!!! device access error (write C)\n");
     return EXIT_FAILURE;
   }
-
-  /* Performs operation using plain C code */
-
+	
+  CUevent event_start, event_stop;
+  float elapsed_time = 0;
+  GPU_TIMER_START(elapsed_time, event_start, event_stop);
   /* Performs operation using cublas */
   status = cublasDgemm(handle, transa, transb, m, n, k, &alpha, d_A, lda, d_B, ldb, &beta, d_C, ldc);
-
+  GPU_TIMER_END(elapsed_time, event_start, event_stop);
+  printf("m, n, k, Tflop/s, %d, %d, %d, %lf\n", m, n, k, 2.0 * m * n * k * 1e-12 / elapsed_time);
   if (status != CUBLAS_STATUS_SUCCESS) {
     fprintf(stderr, "!!!! kernel execution error.\n");
     return EXIT_FAILURE;
