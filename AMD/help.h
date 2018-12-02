@@ -1,21 +1,18 @@
-#include "rocblas.h"
+#define GPU_TIMER_START(elapased_time, event_start, event_stop) \
+do { \
+  elapased_time = 0.0; \
+  hipEventCreateWithFlags(&event_start, hipEventBlockingSync); \
+  hipEventCreateWithFlags(&event_stop, hipEventBlockingSync); \
+  hipEventRecord(event_start, NULL); \
+}while(0)
 
-/*  timing:*/
-/*! \brief  CPU Timer(in microsecond): synchronize with the default device and return wall time */
-double get_time_us(void) {
-    hipDeviceSynchronize();
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return (tv.tv_sec * 1000 * 1000) + tv.tv_usec;
-};
-
-/*! \brief  CPU Timer(in microsecond): synchronize with given queue/stream and return wall time */
-double get_time_us_sync(hipStream_t stream) {
-    hipStreamSynchronize(stream);
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return (tv.tv_sec * 1000 * 1000) + tv.tv_usec;
-};
+#define GPU_TIMER_END(elapased_time, event_start, event_stop) \
+do { \
+  hipEventRecord(event_stop, NULL); \
+  hipEventSynchronize(event_stop); \
+  hipEventElapsedTime(&elapased_time, event_start, event_stop); \
+  elapased_time /= 1000.0; \
+}while(0)
 
 #ifndef CHECK_HIP_ERROR
 #define CHECK_HIP_ERROR(error)                    \
@@ -93,4 +90,3 @@ typedef rocblas_status (*dgemm_type)(rocblas_handle handle,
                                             const double* beta,
                                             double* C,
                                             rocblas_int ldc);
-

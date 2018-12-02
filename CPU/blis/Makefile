@@ -1,6 +1,6 @@
 CC=gcc
-BLIS_PATH=
-LD_BLIS= $(BLIS_PATH)/lblis -fopenmp -lm
+BLIS_PATH=/home/sugon/Hygon/hygonblis-deliver-0831
+LD_BLIS= -L$(BLIS_PATH)/lib -lblis -fopenmp -lm
 CFLAGS= -O3
 all: gemm_blis 
 

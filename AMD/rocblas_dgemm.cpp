@@ -10,6 +10,8 @@
 #include <limits>
 #include <iostream>
 #include <fstream>
+#include <rocblas.h>
+#include <hip/hip_runtime.h>
 #include "help.h"
 const int REPEATED = 10;
 const int CASES = 10;
@@ -20,7 +22,7 @@ const rocblas_int DIM2 = 1024;
 const rocblas_int DIM3 = 1025;
 
 int main(int argc, char *argv[]) {
-  rocblas_operation transa = rocblas_operation_transpose, transb = rocblas_operation_none;
+  rocblas_operation transa = rocblas_operation_none, transb = rocblas_operation_transpose;
   double alpha = 1.1, beta = 0.9;
   //void *dgemm_trained = NULL; 
   //dgemm_trained = dlopen("/home/shchy/code/rocBLAS/build/release/rocblas-install/lib/librocblas.so", RTLD_LAZY);
@@ -104,20 +106,19 @@ int main(int argc, char *argv[]) {
   rocblas_handle handle;
   CHECK_ROCBLAS_ERROR(rocblas_create_handle(&handle));
 
+  float elapased_time = 0.0;
+	double tflops = 0.0;
+  hipEvent_t event_start, event_stop;
   CHECK_ROCBLAS_ERROR(
     rocblas_dgemm(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc) );
     //dgemm_ptr(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc) );
 
-  double gpu_time_used;
-	double tflops = 0.0;
-	gpu_time_used = get_time_us();			//in microseconds
-	for(int i = 0; i < REPEATED; i++) {
-    rocblas_dgemm(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc);
+  GPU_TIMER_START(elapased_time, event_start, event_stop);
+  rocblas_dgemm(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc);
     //dgemm_ptr(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc);
-  }
-	gpu_time_used = (get_time_us() - gpu_time_used) / 1e6;
-	tflops = 1e-12 * 2 * m * n * k * REPEATED / gpu_time_used;
-  cout << "m, n, k, time, tflops= " << m << ", " << n << ", " << k << ", " << gpu_time_used / REPEATED << ", " << tflops << endl;
+  GPU_TIMER_END(elapased_time, event_start, event_stop);
+	tflops = 1e-12 * 2 * m * n * k / elapased_time;
+  cout << "m, n, k, time, tflops= " << m << ", " << n << ", " << k << ", " << elapased_time << ", " << tflops << endl;
 
 /*
   // copy output from device to CPU

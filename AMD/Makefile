@@ -5,7 +5,7 @@ ROCBLAS_LIB=rocblas
 HIP_INCLUDE=/opt/rocm/hip/include
 LDFLAGS=-L$(ROCBLAS_LIB_PATH) -l$(ROCBLAS_LIB) -ldl
 LD=hipcc
-CFLAGS=-I$(ROCBLAS_INCLUDE) -I$(HIP_INCLUDE) -g
+CFLAGS=-I$(ROCBLAS_INCLUDE) -I$(HIP_INCLUDE) #-g
 CPP=hipcc
 EXE=rocblas_dgemm
 
