@@ -22,7 +22,8 @@ const rocblas_int DIM2 = 1024;
 const rocblas_int DIM3 = 1025;
 
 int main(int argc, char *argv[]) {
-  rocblas_operation transa = rocblas_operation_none, transb = rocblas_operation_transpose;
+  //rocblas_operation transa = rocblas_operation_none, transb = rocblas_operation_transpose;
+  rocblas_operation transa = rocblas_operation_none, transb = rocblas_operation_none;
   double alpha = 1.1, beta = 0.9;
   //void *dgemm_trained = NULL; 
   //dgemm_trained = dlopen("/home/shchy/code/rocBLAS/build/release/rocblas-install/lib/librocblas.so", RTLD_LAZY);
@@ -41,7 +42,7 @@ int main(int argc, char *argv[]) {
   }
   rocblas_int lda, ldb, ldc, size_a, size_b, size_c;
   int a_stride_1, a_stride_2, b_stride_1, b_stride_2;
-  cout << "dgemm performance test" << endl;
+  //cout << "dgemm performance test" << endl;
   if(transa == rocblas_operation_none) {
       lda        = m;
       size_a     = k * lda;
