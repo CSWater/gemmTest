@@ -22,15 +22,16 @@ const rocblas_int DIM2 = 1024;
 const rocblas_int DIM3 = 1025;
 
 int main(int argc, char *argv[]) {
-  //rocblas_operation transa = rocblas_operation_none, transb = rocblas_operation_transpose;
-  rocblas_operation transa = rocblas_operation_none, transb = rocblas_operation_none;
+  rocblas_operation transa = rocblas_operation_none, transb = rocblas_operation_transpose;
+  //rocblas_operation transa = rocblas_operation_none, transb = rocblas_operation_none;
   double alpha = 1.1, beta = 0.9;
-  //void *dgemm_trained = NULL; 
-  //dgemm_trained = dlopen("/home/shchy/code/rocBLAS/build/release/rocblas-install/lib/librocblas.so", RTLD_LAZY);
-  //if(!dgemm_trained) {
-  //  std::cout << "no rocblas found in the destination dir" << std::endl;
-  //}
-  //dgemm_type dgemm_ptr = (dgemm_type)dlsym(dgemm_trained, "rocblas_dgemm");
+  void *dgemm_trained = NULL; 
+  dgemm_trained = dlopen("/home/scy/code/rocBLAS/build/release/rocblas-install/lib/librocblas.so", RTLD_LAZY);
+  if(!dgemm_trained) {
+    std::cout << "no rocblas found in the destination dir" << std::endl;
+    return -1;
+  }
+  dgemm_type dgemm_ptr = (dgemm_type)dlsym(dgemm_trained, "rocblas_dgemm");
   rocblas_int m = DIM1, n = DIM2, k = DIM3;
   if(argc < 4) {
     cout << "Usage ./dgemmTest m n k. Now use default m n k" << std::endl;
@@ -41,31 +42,34 @@ int main(int argc, char *argv[]) {
     k = atoi(argv[3]);
   }
   rocblas_int lda, ldb, ldc, size_a, size_b, size_c;
+  lda = 44160;
+  ldb = 2048;
+  ldc = 44160;
   int a_stride_1, a_stride_2, b_stride_1, b_stride_2;
   //cout << "dgemm performance test" << endl;
   if(transa == rocblas_operation_none) {
-      lda        = m;
+      //lda        = m;
       size_a     = k * lda;
       a_stride_1 = 1;
       a_stride_2 = lda;
       cout << "N";
   }
   else {
-      lda        = k;
+      //lda        = k;
       size_a     = m * lda;
       a_stride_1 = lda;
       a_stride_2 = 1;
       cout << "T";
   }
   if(transb == rocblas_operation_none) {
-      ldb        = k;
+      //ldb        = k;
       size_b     = n * ldb;
       b_stride_1 = 1;
       b_stride_2 = ldb;
       cout << "N: ";
   }
   else {
-      ldb        = n;
+      //ldb        = n;
       size_b     = k * ldb;
       b_stride_1 = ldb;
       b_stride_2 = 1;
@@ -111,15 +115,15 @@ int main(int argc, char *argv[]) {
 	double tflops = 0.0;
   hipEvent_t event_start, event_stop;
   CHECK_ROCBLAS_ERROR(
-    rocblas_dgemm(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc) );
-    //dgemm_ptr(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc) );
+    //rocblas_dgemm(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc) );
+   dgemm_ptr(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc) );
 
   GPU_TIMER_START(elapased_time, event_start, event_stop);
-  rocblas_dgemm(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc);
-    //dgemm_ptr(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc);
+  //rocblas_dgemm(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc);
+  dgemm_ptr(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc);
   GPU_TIMER_END(elapased_time, event_start, event_stop);
 	tflops = 1e-12 * 2 * m * n * k / elapased_time;
-  cout << "m, n, k, time, tflops= " << m << ", " << n << ", " << k << ", " << elapased_time << ", " << tflops << endl;
+  cout << "m, n, k, time, tflops, eff= " << m << ", " << n << ", " << k << ", " << elapased_time << ", " << tflops << ", " << tflops / 6.5 * 100 << endl;
 
 /*
   // copy output from device to CPU

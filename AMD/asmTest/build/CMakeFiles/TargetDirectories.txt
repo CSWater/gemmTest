@@ -1,1 +1,0 @@
-/home/shchy/code/gemmTest/AMD/asmTest/build/CMakeFiles/client.dir
