@@ -10,7 +10,7 @@
 #include <limits>
 #include <iostream>
 #include <fstream>
-#include <rocblas.h>
+#include "rocblas.h"
 #include <hip/hip_runtime.h>
 #include "help.h"
 const int REPEATED = 10;
@@ -22,6 +22,7 @@ const rocblas_int DIM2 = 1024;
 const rocblas_int DIM3 = 1025;
 
 int main(int argc, char *argv[]) {
+  hipSetDevice(2);
   rocblas_operation transa = rocblas_operation_none, transb = rocblas_operation_transpose;
   //rocblas_operation transa = rocblas_operation_none, transb = rocblas_operation_none;
   double alpha = 1.1, beta = 0.9;
@@ -42,34 +43,31 @@ int main(int argc, char *argv[]) {
     k = atoi(argv[3]);
   }
   rocblas_int lda, ldb, ldc, size_a, size_b, size_c;
-  lda = 44160;
-  ldb = 2048;
-  ldc = 44160;
   int a_stride_1, a_stride_2, b_stride_1, b_stride_2;
   //cout << "dgemm performance test" << endl;
   if(transa == rocblas_operation_none) {
-      //lda        = m;
+      lda        = m;
       size_a     = k * lda;
       a_stride_1 = 1;
       a_stride_2 = lda;
       cout << "N";
   }
   else {
-      //lda        = k;
+      lda        = k;
       size_a     = m * lda;
       a_stride_1 = lda;
       a_stride_2 = 1;
       cout << "T";
   }
   if(transb == rocblas_operation_none) {
-      //ldb        = k;
+      ldb        = k;
       size_b     = n * ldb;
       b_stride_1 = 1;
       b_stride_2 = ldb;
       cout << "N: ";
   }
   else {
-      //ldb        = n;
+      ldb        = n;
       size_b     = k * ldb;
       b_stride_1 = ldb;
       b_stride_2 = 1;
@@ -87,13 +85,13 @@ int main(int argc, char *argv[]) {
   // initial data on host
   srand(1);
   for(int i = 0; i < size_a; ++i) {
-      ha[i] = rand() % 17;
+      ha[i] = rand() * 1.0 / RAND_MAX;
   }
   for(int i = 0; i < size_b; ++i) {
-      hb[i] = rand() % 17;
+      hb[i] = rand() * 1.0 / RAND_MAX;
   }
   for(int i = 0; i < size_c; ++i) {
-      hc[i] = rand() % 17;
+      hc[i] = rand() * 1.0 / RAND_MAX;
   }
   hc_gold = hc;
 
@@ -115,12 +113,12 @@ int main(int argc, char *argv[]) {
 	double tflops = 0.0;
   hipEvent_t event_start, event_stop;
   CHECK_ROCBLAS_ERROR(
-    //rocblas_dgemm(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc) );
-   dgemm_ptr(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc) );
+    rocblas_dgemm(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc) );
+   //dgemm_ptr(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc) );
 
   GPU_TIMER_START(elapased_time, event_start, event_stop);
-  //rocblas_dgemm(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc);
-  dgemm_ptr(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc);
+  rocblas_dgemm(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc);
+  //dgemm_ptr(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc);
   GPU_TIMER_END(elapased_time, event_start, event_stop);
 	tflops = 1e-12 * 2 * m * n * k / elapased_time;
   cout << "m, n, k, time, tflops, eff= " << m << ", " << n << ", " << k << ", " << elapased_time << ", " << tflops << ", " << tflops / 6.5 * 100 << endl;
