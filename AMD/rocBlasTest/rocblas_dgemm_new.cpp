@@ -17,61 +17,43 @@ const int REPEATED = 10;
 const int CASES = 10;
 using namespace std;
 
-const rocblas_int DIM1 = 1023;
-const rocblas_int DIM2 = 1024;
-const rocblas_int DIM3 = 1025;
-
 int main(int argc, char *argv[]) {
   hipSetDevice(2);
   rocblas_operation transa = rocblas_operation_none, transb = rocblas_operation_none;
   //rocblas_operation transa = rocblas_operation_none, transb = rocblas_operation_none;
-  double alpha = 1.1, beta = 0.9;
-  void *dgemm_trained = NULL; 
-  dgemm_trained = dlopen("/home/scy/code/rocBLAS/build/release/rocblas-install/lib/librocblas.so", RTLD_LAZY);
-  if(!dgemm_trained) {
-    std::cout << "no rocblas found in the destination dir" << std::endl;
+  double alpha = -1, beta = 1;
+  rocblas_int lda, ldb, ldc, size_a, size_b, size_c;
+  rocblas_int m, n, k;
+
+  if(argc != 4) {
+    printf("wrong parameters\n");
     return -1;
-  }
-  dgemm_type dgemm_ptr = (dgemm_type)dlsym(dgemm_trained, "rocblas_dgemm");
-  rocblas_int m = DIM1, n = DIM2, k = DIM3;
-  if(argc < 4) {
-    cout << "Usage ./dgemmTest m n k. Now use default m n k" << std::endl;
   }
   else {
     m = atoi(argv[1]);
     n = atoi(argv[2]);
     k = atoi(argv[3]);
   }
-  rocblas_int lda, ldb, ldc, size_a, size_b, size_c;
-  int a_stride_1, a_stride_2, b_stride_1, b_stride_2;
   //cout << "dgemm performance test" << endl;
   if(transa == rocblas_operation_none) {
       lda        = m;
       size_a     = k * lda;
-      a_stride_1 = 1;
-      a_stride_2 = lda;
-      cout << "N";
+      //cout << "N";
   }
   else {
       lda        = k;
       size_a     = m * lda;
-      a_stride_1 = lda;
-      a_stride_2 = 1;
-      cout << "T";
+      //cout << "T";
   }
   if(transb == rocblas_operation_none) {
       ldb        = k;
       size_b     = n * ldb;
-      b_stride_1 = 1;
-      b_stride_2 = ldb;
-      cout << "N: ";
+      //cout << "N: ";
   }
   else {
       ldb        = n;
       size_b     = k * ldb;
-      b_stride_1 = ldb;
-      b_stride_2 = 1;
-      cout << "T: ";
+      //cout << "T: ";
   }
   ldc    = m;
   size_c = n * ldc;
@@ -113,58 +95,14 @@ int main(int argc, char *argv[]) {
 	double tflops = 0.0;
   hipEvent_t event_start, event_stop;
   CHECK_ROCBLAS_ERROR(
-    rocblas_dgemm(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc) );
-   //dgemm_ptr(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc) );
-
+    rocblas_dgemm(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc) 
+  );
   GPU_TIMER_START(elapased_time, event_start, event_stop);
   rocblas_dgemm(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc);
-  //dgemm_ptr(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc);
   GPU_TIMER_END(elapased_time, event_start, event_stop);
 	tflops = 1e-12 * 2 * m * n * k / elapased_time;
-  cout << "m, n, k, time, tflops, eff=, " << m << ", " << n << ", " << k << ", " << elapased_time << ", " << tflops << ", " << tflops / 6.5 * 100 << endl;
-
-/*
-  // copy output from device to CPU
-  CHECK_HIP_ERROR(hipMemcpy(hc.data(), dc, sizeof(double) * size_c, hipMemcpyDeviceToHost));
-
-
-
-  double max_relative_error = numeric_limits<double>::min();
-
-  // calculate golden or correct result
-  mat_mat_mult<double>(alpha,
-                      beta,
-                      m,
-                      n,
-                      k,
-                      ha.data(),
-                      a_stride_1,
-                      a_stride_2,
-                      hb.data(),
-                      b_stride_1,
-                      b_stride_2,
-                      hc_gold.data(),
-                      1,
-                      ldc);
-
-  for(int i = 0; i < size_c; i++)
-  {
-      double relative_error = (hc_gold[i] - hc[i]) / hc_gold[i];
-      relative_error       = relative_error > 0 ? relative_error : -relative_error;
-      max_relative_error =
-          relative_error < max_relative_error ? max_relative_error : relative_error;
-  }
-  double eps       = numeric_limits<double>::epsilon();
-  double tolerance = 10;
-  if(max_relative_error != max_relative_error || max_relative_error > eps * tolerance)
-  {
-      cout << "FAIL: max_relative_error = " << max_relative_error << endl;
-  }
-  else
-  {
-      cout << "PASS: max_relative_error = " << max_relative_error << endl;
-  }
-  */
+  cout << "m, n, k, lda, ldb, time, tflops, eff=, " << m << ", " << n << ", " << k << ", "  
+      << lda << ", " << ldb << " " << elapased_time << ", " << tflops << ", " << tflops / 6.5 * 100 << "%" << endl;
 
   CHECK_HIP_ERROR(hipFree(da));
   CHECK_HIP_ERROR(hipFree(db));

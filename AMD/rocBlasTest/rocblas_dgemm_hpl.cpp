@@ -17,63 +17,60 @@ const int REPEATED = 10;
 const int CASES = 10;
 using namespace std;
 
-const rocblas_int DIM1 = 1023;
-const rocblas_int DIM2 = 1024;
-const rocblas_int DIM3 = 1025;
+const rocblas_int DIM1 = 25600 - 128;
+const rocblas_int DIM2 = 25600 - 128;
+const rocblas_int DIM3 = 25600 - 128;
 
 int main(int argc, char *argv[]) {
   hipSetDevice(2);
   rocblas_operation transa = rocblas_operation_none, transb = rocblas_operation_none;
   //rocblas_operation transa = rocblas_operation_none, transb = rocblas_operation_none;
-  double alpha = 1.1, beta = 0.9;
-  void *dgemm_trained = NULL; 
-  dgemm_trained = dlopen("/home/scy/code/rocBLAS/build/release/rocblas-install/lib/librocblas.so", RTLD_LAZY);
-  if(!dgemm_trained) {
-    std::cout << "no rocblas found in the destination dir" << std::endl;
-    return -1;
-  }
-  dgemm_type dgemm_ptr = (dgemm_type)dlsym(dgemm_trained, "rocblas_dgemm");
+  double alpha = -1, beta = 1;
+  rocblas_int lda, ldb, ldc, size_a, size_b, size_c;
   rocblas_int m = DIM1, n = DIM2, k = DIM3;
-  if(argc < 4) {
-    cout << "Usage ./dgemmTest m n k. Now use default m n k" << std::endl;
+
+  if(argc != 7) {
+    printf("wrong parameters\n");
+    return -1;
   }
   else {
     m = atoi(argv[1]);
     n = atoi(argv[2]);
     k = atoi(argv[3]);
+    lda = atoi(argv[4]);
+    ldb = atoi(argv[5]);
+    ldc = atoi(argv[6]);
   }
-  rocblas_int lda, ldb, ldc, size_a, size_b, size_c;
   int a_stride_1, a_stride_2, b_stride_1, b_stride_2;
-  //cout << "dgemm performance test" << endl;
   if(transa == rocblas_operation_none) {
-      lda        = m;
+      //lda        = m;
       size_a     = k * lda;
       a_stride_1 = 1;
       a_stride_2 = lda;
-      cout << "N";
+      //cout << "N";
   }
   else {
-      lda        = k;
+      //lda        = k;
       size_a     = m * lda;
       a_stride_1 = lda;
       a_stride_2 = 1;
-      cout << "T";
+      //cout << "T";
   }
   if(transb == rocblas_operation_none) {
-      ldb        = k;
+      //ldb        = k;
       size_b     = n * ldb;
       b_stride_1 = 1;
       b_stride_2 = ldb;
-      cout << "N: ";
+      //cout << "N: ";
   }
   else {
-      ldb        = n;
+      //ldb        = n;
       size_b     = k * ldb;
       b_stride_1 = ldb;
       b_stride_2 = 1;
-      cout << "T: ";
+      //cout << "T: ";
   }
-  ldc    = m;
+  //ldc    = m;
   size_c = n * ldc;
 
   // Naming: da is in GPU (device) memory. ha is in CPU (host) memory
@@ -112,16 +109,22 @@ int main(int argc, char *argv[]) {
   float elapased_time = 0.0;
 	double tflops = 0.0;
   hipEvent_t event_start, event_stop;
-  CHECK_ROCBLAS_ERROR(
-    rocblas_dgemm(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc) );
-   //dgemm_ptr(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc) );
+  //for(int i = DIM1; i >= 384; i-=256) {
+    //n = i;
+    //m = i;
+    //k = i;
+    //lda = m;
+    //ldb = n;
+    CHECK_ROCBLAS_ERROR(
+      rocblas_dgemm(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc) );
 
-  GPU_TIMER_START(elapased_time, event_start, event_stop);
-  rocblas_dgemm(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc);
-  //dgemm_ptr(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc);
-  GPU_TIMER_END(elapased_time, event_start, event_stop);
-	tflops = 1e-12 * 2 * m * n * k / elapased_time;
-  cout << "m, n, k, time, tflops, eff=, " << m << ", " << n << ", " << k << ", " << elapased_time << ", " << tflops << ", " << tflops / 6.5 * 100 << endl;
+    GPU_TIMER_START(elapased_time, event_start, event_stop);
+    rocblas_dgemm(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc);
+    GPU_TIMER_END(elapased_time, event_start, event_stop);
+	  tflops = 1e-12 * 2 * m * n * k / elapased_time;
+    cout << "m, n, k, lda, ldb, time, tflops, eff=, " << m << ", " << n << ", " << k << ", "  
+      << lda << ", " << ldb << " " << elapased_time << ", " << tflops << ", " << tflops / 6.5 * 100 << "%" << endl;
+  //}
 
 /*
   // copy output from device to CPU
