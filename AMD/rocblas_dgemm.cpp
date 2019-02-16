@@ -17,45 +17,79 @@ const int REPEATED = 10;
 const int CASES = 10;
 using namespace std;
 
-int main(int argc, char *argv[]) {
-  hipSetDevice(2);
-  rocblas_operation transa = rocblas_operation_none, transb = rocblas_operation_none;
-  //rocblas_operation transa = rocblas_operation_none, transb = rocblas_operation_none;
-  double alpha = -1, beta = 1;
-  rocblas_int lda, ldb, ldc, size_a, size_b, size_c;
-  rocblas_int m, n, k;
+const rocblas_int DIM1 = 1023;
+const rocblas_int DIM2 = 1024;
+const rocblas_int DIM3 = 1025;
 
-  if(argc != 4) {
-    printf("wrong parameters\n");
+int main(int argc, char *argv[]) {
+  //hipSetDevice(2);
+  double alpha = 1.1, beta = 0.9;
+  //void *dgemm_trained = NULL; 
+  //dgemm_trained = dlopen("/home/scy/code/rocBLAS/build/release/rocblas-install/lib/librocblas.so", RTLD_LAZY);
+  //if(!dgemm_trained) {
+  //  std::cout << "no rocblas found in the destination dir" << std::endl;
+  //  return -1;
+  //}
+  //dgemm_type dgemm_ptr = (dgemm_type)dlsym(dgemm_trained, "rocblas_dgemm");
+  rocblas_int m = DIM1, n = DIM2, k = DIM3;
+  rocblas_int lda, ldb, ldc;
+  rocblas_int size_a, size_b, size_c;
+  rocblas_operation transa = rocblas_operation_none, transb = rocblas_operation_transpose;
+  string trans;
+  if(argc != 8) {
+    cout << "Usage ./dgemmTest transAtransB m n k lda ldb ldc. Now use default params" << std::endl;
+    lda = m;
+    ldb = n;
+    ldc = m;
+    cout << "NT: ";
+  }
+  else {
+    trans = string(argv[1]);
+    m = atoi(argv[2]);
+    n = atoi(argv[3]);
+    k = atoi(argv[4]);
+    lda = atoi(argv[5]);
+    ldb = atoi(argv[6]);
+    ldc = atoi(argv[7]);
+  }
+
+  if(trans.compare("NN") == 0) {
+    transa = rocblas_operation_none;
+    transb = rocblas_operation_none;
+  } 
+  else if(trans.compare("NT") == 0) {
+    transa = rocblas_operation_none;
+    transb = rocblas_operation_transpose;
+  }
+  else if(trans.compare("TN") == 0) {
+    transa = rocblas_operation_transpose;
+    transb = rocblas_operation_none;
+  }
+  else if(trans.compare("TT") == 0) {
+    transa = rocblas_operation_transpose;
+    transb = rocblas_operation_transpose;
+  }
+  else {
+    cout << "Invalid Format!\n";
     return -1;
   }
-  else {
-    m = atoi(argv[1]);
-    n = atoi(argv[2]);
-    k = atoi(argv[3]);
-  }
-  //cout << "dgemm performance test" << endl;
+
   if(transa == rocblas_operation_none) {
-      lda        = m;
       size_a     = k * lda;
-      //cout << "N";
+      cout << "N";
   }
   else {
-      lda        = k;
       size_a     = m * lda;
-      //cout << "T";
+      cout << "T";
   }
   if(transb == rocblas_operation_none) {
-      ldb        = k;
       size_b     = n * ldb;
-      //cout << "N: ";
+      cout << "N: ";
   }
   else {
-      ldb        = n;
       size_b     = k * ldb;
-      //cout << "T: ";
+      cout << "T: ";
   }
-  ldc    = m;
   size_c = n * ldc;
 
   // Naming: da is in GPU (device) memory. ha is in CPU (host) memory
@@ -94,15 +128,19 @@ int main(int argc, char *argv[]) {
   float elapased_time = 0.0;
 	double tflops = 0.0;
   hipEvent_t event_start, event_stop;
-  CHECK_ROCBLAS_ERROR(
-    rocblas_dgemm(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc) 
-  );
+  CHECK_ROCBLAS_ERROR(rocblas_dgemm(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc) );
+  //CHECK_ROCBLAS_ERROR(rdgemm_ptr(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc) );
+
   GPU_TIMER_START(elapased_time, event_start, event_stop);
   rocblas_dgemm(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc);
+  //dgemm_ptr(handle, transa, transb, m, n, k, &alpha, da, lda, db, ldb, &beta, dc, ldc);
   GPU_TIMER_END(elapased_time, event_start, event_stop);
 	tflops = 1e-12 * 2 * m * n * k / elapased_time;
-  cout << "m, n, k, lda, ldb, time, tflops, eff=, " << m << ", " << n << ", " << k << ", "  
-      << lda << ", " << ldb << " " << elapased_time << ", " << tflops << ", " << tflops / 6.5 * 100 << "%" << endl;
+  //cout << "m, n, k, time, tflops, eff=, " << m << ", " << n << ", " << k << ", " << elapased_time << ", " << tflops << ", " << tflops / 6.5 * 100 << "%"<< endl;
+  printf("m, n, k, lda, ldb, ldc, tflops, eff=, %5d, %5d, %5d, %5d, %5d, %5d, %.2f, %.2f%%\n",
+      m, n, k, lda, ldb, ldc, tflops, tflops / 6.5 * 100 );
+
+  CHECK_HIP_ERROR(hipMemcpy(hc.data(), dc, sizeof(double) * size_c, hipMemcpyDeviceToHost));
 
   CHECK_HIP_ERROR(hipFree(da));
   CHECK_HIP_ERROR(hipFree(db));
