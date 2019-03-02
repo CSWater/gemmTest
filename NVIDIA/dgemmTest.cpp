@@ -24,34 +24,51 @@ int main(int argc, char **argv) {
   double *d_C = 0;
   double alpha = 1.0f;
   double beta = 0.0f;
-  if(argc < 4) {
-	  printf("usage: ./dgemmTest m n k\n");
+  int m = 1024, n = 1024, k = 1024;
+  int lda, ldb, ldc;
+  string trans;
+  if(argc != 8) {
+	  printf("usage: ./dgemmTest transAtransB m n k lda ldb ldc. Now use default params\n");
+    lda = m;
+    ldb = n;
+    ldc = m;
 	  return 0;
   }
-  int m, n, k;
-  int lda, ldb, ldc;
-  m = atoi(argv[1]);
-  n = atoi(argv[2]);
-  k = atoi(argv[3]);
+  else {
+    trans = string(argv[1]);
+    m = atoi(argv[2]);
+    n = atoi(argv[3]);
+    k = atoi(argv[4]);
+    lda = atoi(argv[5]);
+    ldb = atoi(argv[6]);
+    ldc = atoi(argv[7]);
+  }
   int i;
   double error_norm;
   double ref_norm;
   double diff;
   cublasHandle_t handle;
   cublasOperation_t transa = CUBLAS_OP_N, transb = CUBLAS_OP_T;
-  if(transa == CUBLAS_OP_N) {
-      lda        = m;
+  if(trans.compare("NN") == 0) {
+    transa = CUBLAS_OP_N;
+    transb = CUBLAS_OP_N;
+  }
+  else if(trans.compare("NT") == 0) {
+    transa = CUBLAS_OP_N;
+    transb = CUBLAS_OP_T;
+  }
+  else if(trans.compare("TN") == 0) {
+    transa = CUBLAS_OP_T;
+    transb = CUBLAS_OP_N;
+  }
+  else if(trans.compare("TT") == 0) {
+    transb = CUBLAS_OP_T;
+    transa = CUBLAS_OP_T;
   }
   else {
-      lda        = k;
+    cout << "Invalid Format!\n";
+    return -1;
   }
-  if(transb == CUBLAS_OP_N) {
-      ldb        = k;
-  }
-  else {
-      ldb        = n;
-  }
-  ldc    = m;
   /* Initialize CUBLAS */
   printf("simpleCUBLAS test running..\n");
 
