@@ -7,7 +7,7 @@ LDFLAGS=-L$(ROCBLAS_LIB_PATH) -l$(ROCBLAS_LIB) -ldl
 LD=hipcc
 CFLAGS=-I$(ROCBLAS_INCLUDE) #-I$(HIP_INCLUDE) #-g
 CPP=hipcc
-EXE=rocblas_dgemm rocblas_sgemm 
+EXE=rocblas_dgemm rocblas_sgemm hpl_dgemm
 
 all: $(EXE)
 
@@ -17,6 +17,8 @@ all: $(EXE)
 rocblas_dgemm : rocblas_dgemm.o
 	$(LD) $< $(LDFLAGS) -o $@
 rocblas_sgemm : rocblas_sgemm.o
+	$(LD) $< $(LDFLAGS) -o $@
+hpl_dgemm : hpl_dgemm.o
 	$(LD) $< $(LDFLAGS) -o $@
 
 clean:
