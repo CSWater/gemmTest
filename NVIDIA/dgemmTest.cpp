@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <cassert>
+#include<iostream>
 
 
 /* Includes, cuda */
@@ -26,7 +27,7 @@ int main(int argc, char **argv) {
   double beta = 0.0f;
   int m = 1024, n = 1024, k = 1024;
   int lda, ldb, ldc;
-  string trans;
+  std::string trans;
   if(argc != 8) {
 	  printf("usage: ./dgemmTest transAtransB m n k lda ldb ldc. Now use default params\n");
     lda = m;
@@ -35,7 +36,7 @@ int main(int argc, char **argv) {
 	  return 0;
   }
   else {
-    trans = string(argv[1]);
+    trans = std::string(argv[1]);
     m = atoi(argv[2]);
     n = atoi(argv[3]);
     k = atoi(argv[4]);
@@ -66,7 +67,7 @@ int main(int argc, char **argv) {
     transa = CUBLAS_OP_T;
   }
   else {
-    cout << "Invalid Format!\n";
+    printf("Invalid Format!\n");
     return -1;
   }
   /* Initialize CUBLAS */
@@ -151,7 +152,8 @@ int main(int argc, char **argv) {
   /* Performs operation using cublas */
   status = cublasDgemm(handle, transa, transb, m, n, k, &alpha, d_A, lda, d_B, ldb, &beta, d_C, ldc);
   GPU_TIMER_END(elapsed_time, event_start, event_stop);
-  printf("m, n, k, Tflop/s, %d, %d, %d, %lf\n", m, n, k, 2.0 * m * n * k * 1e-12 / elapsed_time);
+  double tflops = 2.0 * m * n * k * 1e-12 / elapsed_time;
+  printf("m, n, k, Tflop/s, eff, %d, %d, %d, %d, %d, %d, %lf, %2.2f%%\n", m, n, k, lda, ldb, ldc, tflops, tflops/4.76*100);
   if (status != CUBLAS_STATUS_SUCCESS) {
     fprintf(stderr, "!!!! kernel execution error.\n");
     return EXIT_FAILURE;
